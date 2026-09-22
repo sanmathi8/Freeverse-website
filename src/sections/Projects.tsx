@@ -47,7 +47,7 @@ const featuredProjects: ProjectItem[] = [
     category: 'MOBILE DEVELOPMENT',
     creator: 'Vikram Singh',
     description: 'Cross-platform campus navigation app with offline vector maps, shuttle schedule alerts, and event notifications.',
-    image: 'https://images.unsplash.com/photo-1512428813834-c702c7702b78?w=800&h=500&fit=crop',
+    image: 'https://images.unsplash.com/photo-1569336415962-a4bd9f69cd83?w=800&h=500&fit=crop',
     technologies: ['Flutter', 'Dart', 'Firebase', 'Google Maps API'],
   },
   {
