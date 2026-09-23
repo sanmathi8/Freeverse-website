@@ -1,5 +1,7 @@
 package dev.freeverse.config;
 
+import dev.freeverse.security.CustomOAuth2FailureHandler;
+import dev.freeverse.security.CustomOAuth2SuccessHandler;
 import dev.freeverse.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -29,12 +31,19 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
+    private final CustomOAuth2FailureHandler customOAuth2FailureHandler;
 
     @Value("${app.client-url:http://localhost:5173}")
     private String clientUrl;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            CustomOAuth2SuccessHandler customOAuth2SuccessHandler,
+            CustomOAuth2FailureHandler customOAuth2FailureHandler) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.customOAuth2SuccessHandler = customOAuth2SuccessHandler;
+        this.customOAuth2FailureHandler = customOAuth2FailureHandler;
     }
 
     @Bean
@@ -54,12 +63,22 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/**", "/oauth2/**", "/login/oauth2/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/freelancers/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/profiles/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .anyRequest().authenticated()
+            )
+            .oauth2Login(oauth2 -> oauth2
+                .authorizationEndpoint(authorization -> authorization
+                    .baseUri("/oauth2/authorization")
+                )
+                .redirectionEndpoint(redirection -> redirection
+                    .baseUri("/login/oauth2/code/*")
+                )
+                .successHandler(customOAuth2SuccessHandler)
+                .failureHandler(customOAuth2FailureHandler)
             );
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

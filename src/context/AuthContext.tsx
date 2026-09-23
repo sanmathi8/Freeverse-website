@@ -13,6 +13,7 @@ interface AuthContextType {
   isLoading: boolean;
   authModalOpen: boolean;
   authModalMode: 'login' | 'register' | 'forgot';
+  oauthError: string | null;
   login: (data: { usernameOrEmail: string; password: string }) => Promise<{ success: boolean; message: string }>;
   register: (data: { email: string; username: string; password: string; fullName: string }) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
@@ -30,15 +31,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register' | 'forgot'>('login');
+  const [oauthError, setOauthError] = useState<string | null>(null);
 
-  const openAuthModal = (mode: 'login' | 'register' | 'forgot' = 'login') => {
+  const openAuthModal = useCallback((mode: 'login' | 'register' | 'forgot' = 'login') => {
     setAuthModalMode(mode);
     setAuthModalOpen(true);
-  };
+  }, []);
 
-  const closeAuthModal = () => {
+  const closeAuthModal = useCallback(() => {
     setAuthModalOpen(false);
-  };
+  }, []);
 
   const refreshProfile = useCallback(async () => {
     const currentToken = getAuthToken();
@@ -92,6 +94,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initAuth = async () => {
+      // 1. Check for Real OAuth2 Callback Token/Error in URL hash
+      const combined = (window.location.hash || '') + (window.location.search || '');
+      if (combined.includes('oauth2/redirect')) {
+        const urlParams = new URLSearchParams(combined.substring(combined.indexOf('?')));
+        const tokenParam = urlParams.get('token');
+        const errorParam = urlParams.get('error');
+
+        if (tokenParam) {
+          setAuthToken(tokenParam);
+          setToken(tokenParam);
+          const meRes = await authApi.getCurrentUser();
+          if (meRes.success && meRes.data) {
+            const uData = meRes.data as any;
+            setUser({
+              userId: uData.id,
+              username: uData.username,
+              email: uData.email,
+              accessToken: tokenParam,
+              emailVerified: uData.emailVerified,
+            });
+            const profRes = await profileApi.getMyProfile();
+            if (profRes.success && profRes.data) {
+              setProfile(profRes.data);
+            }
+          }
+          window.location.hash = '';
+          setIsLoading(false);
+          return;
+        } else if (errorParam) {
+          setOauthError(errorParam);
+          window.location.hash = '';
+          openAuthModal('login');
+        }
+      }
+
+      // 2. Standard Token Initialization
       const currentToken = getAuthToken();
       if (currentToken) {
         const meRes = await authApi.getCurrentUser();
@@ -118,7 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     initAuth();
-  }, [migrateLocalStorageIfNeeded]);
+  }, [migrateLocalStorageIfNeeded, openAuthModal]);
 
   const login = async (data: { usernameOrEmail: string; password: string }) => {
     setIsLoading(true);
@@ -152,8 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await refreshProfile();
       }
       setIsLoading(false);
-      closeAuthModal();
-      return { success: true, message: res.message || 'Registration successful' };
+      return { success: true, message: res.message || 'Registration successful. Please verify your email.' };
     }
     setIsLoading(false);
     return { success: false, message: res.message || 'Registration failed' };
@@ -176,6 +213,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         authModalOpen,
         authModalMode,
+        oauthError,
         login,
         register,
         logout,

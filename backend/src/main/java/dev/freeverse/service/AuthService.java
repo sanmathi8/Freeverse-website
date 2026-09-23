@@ -175,49 +175,68 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse loginOrRegisterGoogle(String email, String googleId, String name, String picture) {
-        if (googleClientId == null || googleClientId.trim().isEmpty() || googleClientId.contains("placeholder")) {
-            throw new BadRequestException("Google OAuth credentials (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) are not configured in backend environment variables.");
+    public AuthResponse processOAuth2User(String provider, String providerId, String email, String name, String picture) {
+        if (providerId == null || providerId.trim().isEmpty()) {
+            throw new BadRequestException("Invalid OAuth2 user identifier from provider.");
         }
 
         if (email == null || email.trim().isEmpty()) {
-            throw new BadRequestException("Valid Google email is required");
+            throw new BadRequestException("Google account must have a verified email address.");
         }
 
-        User user = userRepository.findByEmail(email.toLowerCase().trim()).orElse(null);
+        String cleanEmail = email.toLowerCase().trim();
 
-        if (user == null) {
-            String baseUsername = email.split("@")[0].replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
-            String username = baseUsername;
-            int counter = 1;
-            while (userRepository.existsByUsername(username)) {
-                username = baseUsername + counter++;
-            }
+        // 1. Check if OAuth account relationship exists by provider + providerId (Google sub claim)
+        OAuthAccount oauthAccount = oauthAccountRepository.findByProviderAndProviderId(provider.toUpperCase(), providerId).orElse(null);
 
-            user = new User(email.toLowerCase().trim(), username, null);
-            user.setEmailVerified(true);
-            user.setAuthProvider("GOOGLE");
-            userRepository.save(user);
-
-            Profile profile = new Profile();
-            profile.setUser(user);
-            profile.setFullName(name != null ? name : username);
-            profile.setProfilePhotoUrl(picture);
-            profile.setProfessionalTitle("Student Creator");
-            profile.setAbout("Welcome to my Freeverse profile!");
-            profileRepository.save(profile);
-
-            OAuthAccount oauthAccount = new OAuthAccount(user, "GOOGLE", googleId);
-            oauthAccountRepository.save(oauthAccount);
-        } else {
+        User user;
+        if (oauthAccount != null) {
+            user = oauthAccount.getUser();
             user.setEmailVerified(true);
             user.setLastLoginAt(OffsetDateTime.now());
             userRepository.save(user);
+        } else {
+            // 2. Check if user with email already exists in users table
+            user = userRepository.findByEmail(cleanEmail).orElse(null);
+            if (user == null) {
+                String baseUsername = cleanEmail.split("@")[0].replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+                String username = baseUsername;
+                int counter = 1;
+                while (userRepository.existsByUsername(username)) {
+                    username = baseUsername + counter++;
+                }
+
+                user = new User(cleanEmail, username, null);
+                user.setEmailVerified(true);
+                user.setAuthProvider(provider.toUpperCase());
+                userRepository.save(user);
+
+                Profile profile = new Profile();
+                profile.setUser(user);
+                profile.setFullName(name != null && !name.trim().isEmpty() ? name.trim() : username);
+                profile.setProfilePhotoUrl(picture);
+                profile.setProfessionalTitle("Student Creator");
+                profile.setAbout("Welcome to my Freeverse profile!");
+                profileRepository.save(profile);
+            } else {
+                user.setEmailVerified(true);
+                user.setLastLoginAt(OffsetDateTime.now());
+                userRepository.save(user);
+            }
+
+            // Save OAuth account association with Google sub claim
+            OAuthAccount newOauthAccount = new OAuthAccount(user, provider.toUpperCase(), providerId);
+            oauthAccountRepository.save(newOauthAccount);
         }
 
         String jwtToken = tokenProvider.generateTokenFromUserId(user.getId(), user.getEmail(), user.getUsername());
         AuthResponse response = new AuthResponse(jwtToken, user.getId(), user.getUsername(), user.getEmail(), user.isEmailVerified());
         response.setProfile(profileService.getProfileByUserId(user.getId(), user.getId()));
         return response;
+    }
+
+    @Transactional
+    public AuthResponse loginOrRegisterGoogle(String email, String googleId, String name, String picture) {
+        return processOAuth2User("GOOGLE", googleId, email, name, picture);
     }
 }
