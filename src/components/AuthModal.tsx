@@ -19,6 +19,7 @@ export const AuthModal: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [showGooglePrompt, setShowGooglePrompt] = useState<boolean>(false);
+  const [customGmail, setCustomGmail] = useState<string>('');
 
   // Sync mode when modal opens
   React.useEffect(() => {
@@ -392,38 +393,63 @@ export const AuthModal: React.FC = () => {
                 </button>
               </div>
 
-              <p className="mt-3 text-xs text-slate-500">Choose an account to continue to Freeverse:</p>
+              <p className="mt-3 text-xs text-slate-500">Choose a Google Account to sign in to Freeverse:</p>
 
               <div className="mt-4 space-y-2">
                 <button
                   type="button"
-                  onClick={() => handleGoogleAccountSelect('sanmathi.google@freeverse.dev', 'Sanmathi (Google Account)')}
+                  onClick={() => handleGoogleAccountSelect('user.student@gmail.com', 'Google Student Account')}
                   className="w-full flex items-center gap-3 p-3 rounded-2xl border border-sky-400/40 bg-sky-500/10 hover:bg-sky-500/20 text-left transition-all"
                 >
-                  <img
-                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop"
-                    alt="Sanmathi"
-                    className="h-9 w-9 rounded-full object-cover border border-sky-400"
-                  />
-                  <div>
-                    <p className="text-xs font-bold text-white">Sanmathi</p>
-                    <p className="text-[11px] text-slate-400">sanmathi.google@freeverse.dev</p>
+                  <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-rose-500 to-amber-500 flex items-center justify-center font-black text-white text-xs shrink-0 shadow-md">
+                    G
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-white truncate">Google Account</p>
+                    <p className="text-[11px] text-slate-400 truncate">user.student@gmail.com</p>
                   </div>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => handleGoogleAccountSelect('alex.rivera@gmail.com', 'Alex Rivera')}
+                  onClick={() => handleGoogleAccountSelect('sanmathi.official@gmail.com', 'Sanmathi')}
                   className="w-full flex items-center gap-3 p-3 rounded-2xl border border-slate-700 bg-slate-800/60 hover:bg-slate-800 text-left transition-all"
                 >
-                  <div className="h-9 w-9 rounded-full bg-teal-500 flex items-center justify-center font-bold text-white text-xs">
-                    AR
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-white">Alex Rivera</p>
-                    <p className="text-[11px] text-slate-400">alex.rivera@gmail.com</p>
+                  <img
+                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop"
+                    alt="Sanmathi"
+                    className="h-9 w-9 rounded-full object-cover border border-sky-400 shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-white truncate">Sanmathi</p>
+                    <p className="text-[11px] text-slate-400 truncate">sanmathi.official@gmail.com</p>
                   </div>
                 </button>
+
+                {/* Custom Gmail Address Entry */}
+                <div className="pt-2 border-t border-slate-800 space-y-2">
+                  <label className="text-[11px] font-bold text-slate-400">Or sign in with another Gmail:</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      value={customGmail}
+                      onChange={(e) => setCustomGmail(e.target.value)}
+                      placeholder="your.name@gmail.com"
+                      className="flex-1 rounded-xl bg-slate-800 border border-slate-700 px-3 py-1.5 text-xs text-white focus:border-sky-500 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={!customGmail.includes('@')}
+                      onClick={() => {
+                        const name = customGmail.split('@')[0];
+                        handleGoogleAccountSelect(customGmail, name);
+                      }}
+                      className="rounded-xl bg-sky-500 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50 hover:bg-sky-600 transition-colors"
+                    >
+                      Sign In
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>

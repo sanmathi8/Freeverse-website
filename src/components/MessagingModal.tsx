@@ -91,30 +91,37 @@ export const MessagingModal: React.FC<MessagingModalProps> = ({
   }, [isOpen, targetUserId, targetUserName]);
 
   useEffect(() => {
-    if (!activePartner) return;
-    const localMsgs = loadLocalMessages();
-    const currentUserId = (user as any)?.id || profile?.id || 'current-user';
+    if (!activePartner || !isOpen) return;
 
-    const filtered = localMsgs.filter(
-      (m) =>
-        (m.senderId === currentUserId && m.recipientId === activePartner.id) ||
-        (m.senderId === activePartner.id && m.recipientId === currentUserId)
-    );
+    const syncMessages = () => {
+      const localMsgs = loadLocalMessages();
+      const currentUserId = (user as any)?.id || profile?.id || 'current-user';
 
-    if (filtered.length === 0) {
-      setMessages([
-        {
-          id: 'welcome-1',
-          senderId: activePartner.id,
-          senderName: activePartner.name,
-          content: `Hi there! I am ${activePartner.name}. Feel free to message me regarding freelance opportunities or project collaborations!`,
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-        },
-      ]);
-    } else {
-      setMessages(filtered);
-    }
-  }, [activePartner, user, profile]);
+      const filtered = localMsgs.filter(
+        (m) =>
+          (m.senderId === currentUserId && m.recipientId === activePartner.id) ||
+          (m.senderId === activePartner.id && m.recipientId === currentUserId)
+      );
+
+      if (filtered.length === 0) {
+        setMessages([
+          {
+            id: 'welcome-1',
+            senderId: activePartner.id,
+            senderName: activePartner.name,
+            content: `Hi there! I am ${activePartner.name}. Feel free to message me regarding freelance opportunities or project collaborations!`,
+            createdAt: new Date(Date.now() - 3600000).toISOString(),
+          },
+        ]);
+      } else {
+        setMessages(filtered);
+      }
+    };
+
+    syncMessages();
+    const interval = setInterval(syncMessages, 1500);
+    return () => clearInterval(interval);
+  }, [activePartner, isOpen, user, profile]);
 
   if (!isOpen) return null;
 
