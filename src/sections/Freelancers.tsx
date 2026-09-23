@@ -527,8 +527,8 @@ export default function Freelancers() {
     });
   };
 
-  // Create New Freelancer Form Handler
-  const handleCreateNewFreelancer = (e: React.FormEvent) => {
+  // Create New Freelancer Form Handler (Connected to Backend API + Local Storage)
+  const handleCreateNewFreelancer = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: Record<string, string> = {};
 
@@ -608,7 +608,41 @@ export default function Freelancers() {
       category: Array.from(derivedCategories),
     };
 
+    // Save to LocalStorage for fallback persistence
     saveCustomFreelancer(newFreelancer);
+
+    // Try backend API save if user is logged in
+    try {
+      const { profileApi } = await import('../api/profileApi');
+      const { projectApi } = await import('../api/projectApi');
+
+      await profileApi.updateMyProfile({
+        name: createForm.name.trim(),
+        title: createForm.title.trim(),
+        about: createForm.about.trim(),
+        avatar: createForm.photo || getAvatarFallback(createForm.name.trim()),
+        education: educationFormatted || undefined,
+        skills,
+        services: createForm.services,
+        github: createForm.github.trim(),
+        linkedin: createForm.linkedin.trim(),
+        portfolio: createForm.portfolio.trim(),
+      });
+
+      await projectApi.createProject({
+        title: createForm.projectName.trim(),
+        description: createForm.projectDesc.trim(),
+        category: createForm.projectCategory,
+        technologies: projectTechs,
+        image: createForm.projectImage.trim(),
+        projectLink: createForm.projectLink.trim() || undefined,
+        githubLink: createForm.projectGithubLink.trim() || undefined,
+        completionYear: createForm.projectCompletionYear.trim() || undefined,
+      });
+    } catch (err) {
+      console.log('Backend API save skipped/offline, saved to local state');
+    }
+
     refresh();
     setCreateSuccess(true);
     setTimeout(() => {

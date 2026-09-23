@@ -12,6 +12,8 @@ import Freelancers from './sections/Freelancers';
 import FreeverseWall from './sections/FreeverseWall';
 import OpportunityGateway from './sections/OpportunityGateway';
 import Footer from './components/Footer';
+import { AuthProvider } from './context/AuthContext';
+import { AuthModal } from './components/AuthModal';
 
 export default function App() {
   const { theme } = useTheme();
@@ -25,46 +27,51 @@ export default function App() {
   };
 
   return (
-    <div className="relative min-h-screen font-sans selection:bg-sky-500/30 selection:text-sky-900 dark:selection:text-white">
-      {/* 3D WebGL Background Canvas */}
-      <Freeverse3DScene theme={theme} triggerAnimation={trigger3DAnim} />
+    <AuthProvider>
+      <div className="relative min-h-screen font-sans selection:bg-sky-500/30 selection:text-sky-900 dark:selection:text-white">
+        {/* 3D WebGL Background Canvas */}
+        <Freeverse3DScene theme={theme} triggerAnimation={trigger3DAnim} />
 
-      {/* Navigation Header */}
-      <Navbar />
+        {/* Navigation Header */}
+        <Navbar />
 
-      {/* Main Page Content with Atmospheric Section Gradients */}
-      <main className="relative z-10">
-        <div className="section-aurora-hero">
-          <Hero onEnterFreeverse={handleEnterFreeverse} />
-        </div>
-        <div className="section-aurora-universe">
-          <Universe />
-        </div>
-        <div className="section-aurora-about">
-          <About />
-        </div>
-        <div>
-          <Journey />
-        </div>
-        <div className="section-aurora-events">
-          <Events />
-        </div>
-        <div className="section-aurora-projects">
-          <Projects />
-        </div>
-        <div className="section-aurora-freelancers">
-          <Freelancers />
-        </div>
-        <div>
-          <FreeverseWall />
-        </div>
-        <div className="section-aurora-gateway">
-          <OpportunityGateway />
-        </div>
-      </main>
+        {/* Main Page Content with Atmospheric Section Gradients */}
+        <main className="relative z-10">
+          <div className="section-aurora-hero">
+            <Hero onEnterFreeverse={handleEnterFreeverse} />
+          </div>
+          <div className="section-aurora-universe">
+            <Universe />
+          </div>
+          <div className="section-aurora-about">
+            <About />
+          </div>
+          <div>
+            <Journey />
+          </div>
+          <div className="section-aurora-events">
+            <Events />
+          </div>
+          <div className="section-aurora-projects">
+            <Projects />
+          </div>
+          <div className="section-aurora-freelancers">
+            <Freelancers />
+          </div>
+          <div>
+            <FreeverseWall />
+          </div>
+          <div className="section-aurora-gateway">
+            <OpportunityGateway />
+          </div>
+        </main>
 
-      {/* Footer */}
-      <Footer />
-    </div>
+        {/* Auth Modal Overlay */}
+        <AuthModal />
+
+        {/* Footer */}
+        <Footer />
+      </div>
+    </AuthProvider>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, Sparkles } from 'lucide-react';
+import { Menu, X, Sparkles, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const navLinks = [
   { label: 'Home', href: '#home' },
@@ -13,6 +14,7 @@ const navLinks = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, profile, isAuthenticated, openAuthModal, logout } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -81,18 +83,47 @@ export default function Navbar() {
         </nav>
 
         {/* Actions */}
-        <div className="hidden items-center gap-4 lg:flex">
-          <a
-            href="#join"
-            onClick={(e) => {
-              e.preventDefault();
-              handleNav('#join');
-            }}
-            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-gradient-to-r from-sky-500 via-blue-600 to-teal-400 px-6 py-2.5 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-sky-500/25 transition-all duration-300 hover:scale-105 active:scale-95"
-          >
-            <span className="relative z-10">JOIN FREEVERSE</span>
-            <div className="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
-          </a>
+        <div className="hidden items-center gap-3 lg:flex">
+          {isAuthenticated ? (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 rounded-full border border-sky-400/40 bg-sky-500/10 px-3 py-1.5 backdrop-blur-md">
+                <img
+                  src={profile?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&crop=faces&q=80'}
+                  alt={profile?.name || user?.username}
+                  className="h-6 w-6 rounded-full object-cover border border-sky-400 aspect-square"
+                />
+                <span className="text-xs font-extrabold text-slate-900 dark:text-white">
+                  @{user?.username}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={logout}
+                className="rounded-full border border-rose-500/40 bg-rose-500/10 p-2 text-rose-500 hover:bg-rose-500/20 transition-colors"
+                title="Sign Out"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => openAuthModal('login')}
+                className="text-xs font-bold uppercase tracking-wider text-slate-800 hover:text-sky-600 dark:text-slate-200 dark:hover:text-sky-400 transition-colors px-3 py-2"
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => openAuthModal('register')}
+                className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-gradient-to-r from-sky-500 via-blue-600 to-teal-400 px-6 py-2.5 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-sky-500/25 transition-all duration-300 hover:scale-105 active:scale-95"
+              >
+                <span className="relative z-10">JOIN FREEVERSE</span>
+                <div className="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Mobile controls */}
@@ -126,16 +157,29 @@ export default function Navbar() {
                 {link.label}
               </a>
             ))}
-            <a
-              href="#join"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNav('#join');
-              }}
-              className="mt-4 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-6 py-3.5 text-center text-xs font-extrabold uppercase tracking-wider text-white shadow-lg"
-            >
-              JOIN FREEVERSE
-            </a>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  logout();
+                }}
+                className="mt-4 rounded-full border border-rose-500/40 bg-rose-500/10 py-3 text-center text-xs font-extrabold uppercase tracking-wider text-rose-500 shadow-md"
+              >
+                SIGN OUT (@{user?.username})
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  openAuthModal('register');
+                }}
+                className="mt-4 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-6 py-3.5 text-center text-xs font-extrabold uppercase tracking-wider text-white shadow-lg"
+              >
+                JOIN FREEVERSE
+              </button>
+            )}
           </nav>
         </div>
       )}
