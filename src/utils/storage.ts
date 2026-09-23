@@ -3,6 +3,8 @@ import { defaultOwnerProfile, type Freelancer, type Project } from '../data/free
 const OWNER_PROFILE_KEY = 'freeverse_owner_profile';
 const OWNER_PROJECTS_KEY = 'freeverse_owner_projects';
 const CUSTOM_FREELANCERS_KEY = 'freeverse_freelancers';
+const MESSAGES_KEY = 'freeverse_messages';
+const HIRE_REQUESTS_KEY = 'freeverse_hire_requests';
 
 export function loadOwnerProfile(): Freelancer {
   try {
@@ -51,6 +53,15 @@ export function saveOwnerProfile(profile: Freelancer): void {
     localStorage.setItem(OWNER_PROJECTS_KEY, JSON.stringify(ownerData.projects));
   } catch (e) {
     console.error('Failed to save owner profile to localStorage:', e);
+  }
+}
+
+export function deleteOwnerProfile(): void {
+  try {
+    localStorage.removeItem(OWNER_PROFILE_KEY);
+    localStorage.removeItem(OWNER_PROJECTS_KEY);
+  } catch (e) {
+    console.error('Failed to delete owner profile from localStorage:', e);
   }
 }
 
@@ -118,6 +129,79 @@ export function getAllFreelancers(demo: Freelancer[]): Freelancer[] {
   return [owner, ...custom, ...filteredDemo];
 }
 
+// Local Storage Messaging & Hire Request Fallbacks
+export interface LocalMessage {
+  id: string;
+  senderId: string;
+  recipientId: string;
+  senderName: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface LocalHireRequest {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  freelancerId: string;
+  freelancerName: string;
+  projectTitle: string;
+  description: string;
+  budget?: string;
+  timeline?: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'COMPLETED' | 'CANCELLED';
+  createdAt: string;
+}
+
+export function loadLocalMessages(): LocalMessage[] {
+  try {
+    const raw = localStorage.getItem(MESSAGES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalMessage(msg: Omit<LocalMessage, 'id' | 'createdAt'>): LocalMessage {
+  const messages = loadLocalMessages();
+  const newMsg: LocalMessage = {
+    ...msg,
+    id: 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+    createdAt: new Date().toISOString(),
+  };
+  messages.push(newMsg);
+  localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
+  return newMsg;
+}
+
+export function loadLocalHireRequests(): LocalHireRequest[] {
+  try {
+    const raw = localStorage.getItem(HIRE_REQUESTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalHireRequest(req: Omit<LocalHireRequest, 'id' | 'createdAt' | 'status'>): LocalHireRequest {
+  const requests = loadLocalHireRequests();
+  const newReq: LocalHireRequest = {
+    ...req,
+    id: 'hire-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+    status: 'PENDING',
+    createdAt: new Date().toISOString(),
+  };
+  requests.push(newReq);
+  localStorage.setItem(HIRE_REQUESTS_KEY, JSON.stringify(requests));
+  return newReq;
+}
+
+export function updateLocalHireRequestStatus(id: string, status: LocalHireRequest['status']): void {
+  const requests = loadLocalHireRequests();
+  const updated = requests.map(r => r.id === id ? { ...r, status } : r);
+  localStorage.setItem(HIRE_REQUESTS_KEY, JSON.stringify(updated));
+}
+
 export function compressImage(file: File, maxWidth = 800, maxHeight = 600, quality = 0.8): Promise<string> {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith('image/')) {
@@ -125,7 +209,6 @@ export function compressImage(file: File, maxWidth = 800, maxHeight = 600, quali
       return;
     }
     
-    // Check file size (e.g. 10MB max limit before compression)
     if (file.size > 10 * 1024 * 1024) {
       reject(new Error('Image file is too large (max 10MB)'));
       return;

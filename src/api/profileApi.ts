@@ -16,4 +16,10 @@ export const profileApi = {
   async getPublicProfile(username: string) {
     return fetchApi<Freelancer>(`/profiles/${username}`);
   },
+
+  async deleteMyProfile() {
+    return fetchApi<void>('/profiles/me', {
+      method: 'DELETE',
+    });
+  },
 };

@@ -20,7 +20,13 @@ import {
   AlertCircle,
   Check,
   UserCheck,
+  MessageSquare,
+  Mail,
+  Copy,
 } from 'lucide-react';
+import { MessagingModal } from '../components/MessagingModal';
+import { HireModal } from '../components/HireModal';
+import { SettingsModal } from '../components/SettingsModal';
 import {
   demoFreelancers,
   skillCategories,
@@ -97,6 +103,9 @@ export default function Freelancers() {
   const [selectedProfile, setSelectedProfile] = useState<Freelancer | null>(null);
   const [hoveredNetworkNode, setHoveredNetworkNode] = useState<string | null>(null);
   const [hireTarget, setHireTarget] = useState<Freelancer | null>(null);
+  const [messageTarget, setMessageTarget] = useState<Freelancer | null>(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [createSuccess, setCreateSuccess] = useState(false);
 
@@ -974,7 +983,16 @@ export default function Freelancers() {
                               onClick={() => setSelectedProfile(f)}
                               className="flex-1 rounded-xl border border-sky-300 dark:border-sky-600/50 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-white hover:bg-sky-50 dark:hover:bg-slate-800 transition-colors"
                             >
-                              View Profile
+                              View
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setMessageTarget(f)}
+                              className="rounded-xl border border-sky-400/40 bg-sky-500/10 px-3 py-2.5 text-xs font-bold text-sky-500 hover:bg-sky-500/20 transition-colors flex items-center justify-center gap-1"
+                              title="Message Freelancer"
+                            >
+                              <MessageSquare size={14} />
+                              <span className="hidden sm:inline">Message</span>
                             </button>
                             {isOwnerCard ? (
                               <button
@@ -986,7 +1004,7 @@ export default function Freelancers() {
                                 className="flex-1 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 py-2.5 text-xs font-extrabold uppercase tracking-wider text-white shadow-md hover:opacity-95 flex items-center justify-center gap-1.5"
                               >
                                 <Edit3 size={14} />
-                                <span>Edit Profile</span>
+                                <span>Edit</span>
                               </button>
                             ) : (
                               <button
@@ -1101,47 +1119,98 @@ export default function Freelancers() {
                   )}
                 </div>
 
-                {/* Additional Metadata Info Bar */}
-                <div className="mb-6 flex flex-wrap gap-4 rounded-2xl bg-slate-100/80 dark:bg-slate-900/60 p-4 border border-slate-200/80 dark:border-slate-800/80 text-xs">
-                  {selectedProfile.education && (
-                    <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                      <GraduationCap size={16} className="text-sky-500" />
-                      <span>{selectedProfile.education}</span>
-                    </div>
-                  )}
-                  {selectedProfile.github && (
-                    <a
-                      href={selectedProfile.github}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 hover:text-sky-500 font-semibold"
+                {/* Additional Metadata Info Bar & Contact Details */}
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-slate-100/80 dark:bg-slate-900/60 p-4 border border-slate-200/80 dark:border-slate-800/80 text-xs">
+                  <div className="flex flex-wrap items-center gap-4">
+                    {selectedProfile.email && (
+                      <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                        <Mail size={16} className="text-sky-500" />
+                        <a href={`mailto:${selectedProfile.email}`} className="font-bold hover:underline text-sky-600 dark:text-sky-400">
+                          {selectedProfile.email}
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedProfile.email || '');
+                            setCopiedEmail(true);
+                            setTimeout(() => setCopiedEmail(false), 2500);
+                          }}
+                          className="rounded-lg bg-sky-500/10 px-2 py-1 text-[10px] font-bold text-sky-500 hover:bg-sky-500/20 flex items-center gap-1"
+                        >
+                          <Copy size={11} />
+                          <span>{copiedEmail ? 'Copied!' : 'Copy Email'}</span>
+                        </button>
+                      </div>
+                    )}
+                    {selectedProfile.education && (
+                      <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                        <GraduationCap size={16} className="text-sky-500" />
+                        <span>{selectedProfile.education}</span>
+                      </div>
+                    )}
+                    {selectedProfile.github && (
+                      <a
+                        href={selectedProfile.github}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 hover:text-sky-500 font-semibold"
+                      >
+                        <Github size={14} />
+                        <span>GitHub</span>
+                      </a>
+                    )}
+                    {selectedProfile.linkedin && (
+                      <a
+                        href={selectedProfile.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 hover:text-sky-500 font-semibold"
+                      >
+                        <Linkedin size={14} />
+                        <span>LinkedIn</span>
+                      </a>
+                    )}
+                    {selectedProfile.portfolio && (
+                      <a
+                        href={selectedProfile.portfolio}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 hover:text-sky-500 font-semibold"
+                      >
+                        <Globe size={14} />
+                        <span>Portfolio</span>
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = selectedProfile;
+                        setSelectedProfile(null);
+                        setMessageTarget(target);
+                      }}
+                      className="rounded-xl border border-sky-400/40 bg-sky-500/10 px-3.5 py-2 text-xs font-bold text-sky-400 hover:bg-sky-500/20 flex items-center gap-1.5"
                     >
-                      <Github size={14} />
-                      <span>GitHub</span>
-                    </a>
-                  )}
-                  {selectedProfile.linkedin && (
-                    <a
-                      href={selectedProfile.linkedin}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 hover:text-sky-500 font-semibold"
-                    >
-                      <Linkedin size={14} />
-                      <span>LinkedIn</span>
-                    </a>
-                  )}
-                  {selectedProfile.portfolio && (
-                    <a
-                      href={selectedProfile.portfolio}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 hover:text-sky-500 font-semibold"
-                    >
-                      <Globe size={14} />
-                      <span>Portfolio</span>
-                    </a>
-                  )}
+                      <MessageSquare size={14} />
+                      <span>Send Message</span>
+                    </button>
+                    {!(selectedProfile.isOwner || selectedProfile.id === 'sanmathi-owner') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const target = selectedProfile;
+                          setSelectedProfile(null);
+                          setHireTarget(target);
+                        }}
+                        className="rounded-xl bg-gradient-to-r from-sky-500 to-teal-400 px-3.5 py-2 text-xs font-bold text-white shadow-md hover:scale-105 transition-all flex items-center gap-1.5"
+                      >
+                        <Briefcase size={14} />
+                        <span>Hire Me</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Bio / About */}
@@ -2422,6 +2491,28 @@ export default function Freelancers() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Interactive Modals */}
+      <MessagingModal
+        isOpen={!!messageTarget}
+        onClose={() => setMessageTarget(null)}
+        targetUserId={messageTarget?.id}
+        targetUserName={messageTarget?.name}
+      />
+      <HireModal
+        isOpen={!!hireTarget}
+        onClose={() => setHireTarget(null)}
+        targetFreelancerId={hireTarget?.id}
+        targetFreelancerName={hireTarget?.name}
+      />
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        onProfileDeleted={() => {
+          refresh();
+          setSelectedProfile(null);
+        }}
+      />
     </section>
   );
 }

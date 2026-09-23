@@ -48,4 +48,11 @@ public class ProfileController {
         ProfileResponse profile = profileService.getProfileByUsername(username, currentUserId);
         return ResponseEntity.ok(ApiResponse.ok("Public profile retrieved successfully", profile));
     }
+
+    @DeleteMapping("/me")
+    @Operation(summary = "Delete current authenticated user's profile and account")
+    public ResponseEntity<ApiResponse<Void>> deleteMyProfile(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        profileService.deleteProfileByUserId(userPrincipal.getId());
+        return ResponseEntity.ok(ApiResponse.ok("Profile and account deleted successfully"));
+    }
 }

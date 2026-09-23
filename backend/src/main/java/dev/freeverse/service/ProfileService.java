@@ -220,4 +220,11 @@ public class ProfileService {
                 + "</svg>";
         return "data:image/svg+xml;utf8," + java.net.URLEncoder.encode(svg, java.nio.charset.StandardCharsets.UTF_8);
     }
+
+    @Transactional
+    public void deleteProfileByUserId(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        userRepository.delete(user);
+    }
 }
