@@ -14,6 +14,8 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import org.springframework.context.annotation.Lazy;
+
 import java.io.IOException;
 
 @Component
@@ -26,7 +28,7 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
     @Value("${app.client-url:http://localhost:5173}")
     private String clientUrl;
 
-    public CustomOAuth2SuccessHandler(AuthService authService) {
+    public CustomOAuth2SuccessHandler(@Lazy AuthService authService) {
         this.authService = authService;
     }
 

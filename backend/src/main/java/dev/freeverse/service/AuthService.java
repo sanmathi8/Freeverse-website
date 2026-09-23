@@ -42,8 +42,8 @@ public class AuthService {
             EmailVerificationTokenRepository verificationTokenRepository,
             PasswordResetTokenRepository resetTokenRepository,
             OAuthAccountRepository oauthAccountRepository,
-            PasswordEncoder passwordEncoder,
-            AuthenticationManager authenticationManager,
+            @org.springframework.context.annotation.Lazy PasswordEncoder passwordEncoder,
+            @org.springframework.context.annotation.Lazy AuthenticationManager authenticationManager,
             JwtTokenProvider tokenProvider,
             EmailService emailService,
             ProfileService profileService) {
