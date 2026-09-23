@@ -4,13 +4,19 @@ export interface Project {
   description: string;
   image: string;
   technologies: string[];
+  category?: string;
+  projectLink?: string;
+  githubLink?: string;
+  completionYear?: string;
 }
 
 export interface Freelancer {
   id: string;
   name: string;
+  username?: string;
   title: string;
   about: string;
+  bio?: string;
   avatar: string;
   skills: string[];
   technologies: string[];
@@ -18,7 +24,49 @@ export interface Freelancer {
   featuredProject: string;
   projectCount: number;
   category: string[];
+  education?: string;
+  services?: string[];
+  github?: string;
+  linkedin?: string;
+  portfolio?: string;
+  availability?: string;
+  isOwner?: boolean;
 }
+
+export const defaultOwnerProfile: Freelancer = {
+  id: 'sanmathi-owner',
+  name: 'Sanmathi',
+  username: 'sanmathi',
+  title: 'Full Stack & AI Developer',
+  bio: 'Passionate student developer building modern web applications, AI tools, and sleek user experiences on Freeverse.',
+  about: 'I build end-to-end web applications, interactive visual tools, and AI-powered utilities for student communities and digital projects.',
+  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&crop=faces&q=80',
+  skills: ['React', 'TypeScript', 'Node.js', 'Python', 'Tailwind CSS', 'AI APIs'],
+  technologies: ['React', 'TypeScript', 'Node.js', 'Python', 'Tailwind CSS', 'PostgreSQL', 'Vite'],
+  projects: [
+    {
+      id: 'owner-proj-1',
+      title: 'Freeverse Core Platform',
+      description: 'A student networking and freelancer showcase platform empowering university creators to manage portfolios and connect.',
+      image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&h=400&fit=crop',
+      technologies: ['React', 'TypeScript', 'Tailwind CSS', 'Three.js'],
+      category: 'WEB DEVELOPMENT',
+      projectLink: 'https://freeverse.dev',
+      githubLink: 'https://github.com/sanmathi8/Freeverse-website',
+      completionYear: '2024',
+    },
+  ],
+  featuredProject: 'Freeverse Core Platform',
+  projectCount: 1,
+  category: ['WEB DEVELOPMENT', 'CODING', 'AI'],
+  education: 'B.Tech Computer Science, 2025',
+  services: ['BUILD A WEBSITE', 'AI PROJECT', 'CODING'],
+  github: 'https://github.com/sanmathi8',
+  linkedin: 'https://linkedin.com/in/sanmathi',
+  portfolio: 'https://freeverse.dev',
+  availability: 'Available for Hire',
+  isOwner: true,
+};
 
 export const skillCategories = [
   'ALL',
