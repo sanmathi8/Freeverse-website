@@ -145,14 +145,27 @@ export default function Freelancers() {
   // ================= NEW FREELANCER BUILDER FORM STATE =================
   const [createForm, setCreateForm] = useState({
     name: 'Alex Rivera',
+    username: 'alexrivera',
+    email: 'alex@example.com',
+    photo: '',
     title: 'Full Stack Web & AI Developer',
     about: 'Passionate student developer building modern web platforms, AI tools, and sleek interfaces.',
     skills: 'React, TypeScript, Python, Node.js, AI APIs',
-    technologies: 'React, TypeScript, Python, Tailwind, PostgreSQL',
+    college: 'Kangeyam Institute of Technology',
+    degree: 'B.E. Computer Science and Engineering',
+    gradYear: '2028',
+    services: ['WEB DEVELOPMENT', 'CODING'] as string[],
+    github: 'https://github.com',
+    linkedin: 'https://linkedin.com',
+    portfolio: 'https://alexrivera.dev',
     projectName: 'AuraFlow AI Platform',
     projectDesc: 'An AI-powered productivity app for student teams.',
-    portfolioUrl: 'https://github.com',
-    photo: '',
+    projectCategory: 'WEB DEVELOPMENT',
+    projectTechnologies: 'React, TypeScript, Python, Tailwind, PostgreSQL',
+    projectImage: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=400&fit=crop',
+    projectLink: 'https://auraflow.dev',
+    projectGithubLink: 'https://github.com/alexrivera/auraflow',
+    projectCompletionYear: '2024',
   });
   const [createFormErrors, setCreateFormErrors] = useState<Record<string, string>>({});
 
@@ -475,43 +488,124 @@ export default function Freelancers() {
     }, 350);
   };
 
-  // Legacy Create Freelancer Handler (For Become Freelancer CTA)
+  // Create Freelancer Form Image & Service Handlers
+  const handleCreatePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        setImageCompressing(true);
+        const compressed = await compressImage(file, 400, 400, 0.85);
+        setCreateForm((prev) => ({ ...prev, photo: compressed }));
+      } catch (err) {
+        console.error('Photo compression error:', err);
+      } finally {
+        setImageCompressing(false);
+      }
+    }
+  };
+
+  const handleCreateProjectImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        setImageCompressing(true);
+        const compressed = await compressImage(file, 800, 600, 0.8);
+        setCreateForm((prev) => ({ ...prev, projectImage: compressed }));
+      } catch (err) {
+        console.error('Project image compression error:', err);
+      } finally {
+        setImageCompressing(false);
+      }
+    }
+  };
+
+  const toggleCreateService = (svc: string) => {
+    setCreateForm((prev) => {
+      const exists = prev.services.includes(svc);
+      const updated = exists ? prev.services.filter((s) => s !== svc) : [...prev.services, svc];
+      return { ...prev, services: updated };
+    });
+  };
+
+  // Create New Freelancer Form Handler
   const handleCreateNewFreelancer = (e: React.FormEvent) => {
     e.preventDefault();
     const errs: Record<string, string> = {};
-    if (!createForm.name.trim()) errs.name = 'Name is required';
+
+    if (!createForm.name.trim()) errs.name = 'Full Name is required';
+    if (!createForm.username.trim()) {
+      errs.username = 'Username is required';
+    }
+    if (!createForm.email.trim()) {
+      errs.email = 'Email Address is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createForm.email.trim())) {
+      errs.email = 'Please enter a valid email address';
+    }
     if (!createForm.title.trim()) errs.title = 'Professional title is required';
-    if (!createForm.about.trim()) errs.about = 'About is required';
+    if (!createForm.about.trim()) errs.about = 'About details are required';
     if (!createForm.skills.trim()) errs.skills = 'At least one skill is required';
+
     if (!createForm.projectName.trim()) errs.projectName = 'Project name is required';
+    if (!createForm.projectDesc.trim()) errs.projectDesc = 'Project description is required';
+    if (!createForm.projectCategory.trim()) errs.projectCategory = 'Project category is required';
+    if (!createForm.projectTechnologies.trim()) errs.projectTechnologies = 'Technologies used are required';
+    if (!createForm.projectImage.trim()) errs.projectImage = 'Project image is required';
+
     setCreateFormErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
     const skills = createForm.skills.split(',').map((s) => s.trim()).filter(Boolean);
-    const technologies = createForm.technologies
-      ? createForm.technologies.split(',').map((s) => s.trim()).filter(Boolean)
-      : skills;
+    const projectTechs = createForm.projectTechnologies.split(',').map((s) => s.trim()).filter(Boolean);
+
+    // Format education string
+    let educationFormatted = '';
+    if (createForm.degree.trim() || createForm.college.trim()) {
+      const parts = [];
+      if (createForm.degree.trim()) parts.push(createForm.degree.trim());
+      if (createForm.college.trim()) parts.push(createForm.college.trim());
+      if (createForm.gradYear.trim()) parts.push(createForm.gradYear.trim());
+      educationFormatted = parts.join(', ');
+    }
+
+    // Map categories
+    const derivedCategories = new Set<string>();
+    derivedCategories.add(createForm.projectCategory.toUpperCase());
+    createForm.services.forEach((svc) => {
+      const cats = serviceToCategory[svc];
+      if (cats) cats.forEach((c) => derivedCategories.add(c));
+    });
 
     const newFreelancer: Freelancer = {
       id: `custom-${Date.now()}`,
       name: createForm.name.trim(),
+      username: createForm.username.trim().replace(/^@/, ''),
+      email: createForm.email.trim(),
       title: createForm.title.trim(),
       about: createForm.about.trim(),
       avatar: createForm.photo || getAvatarFallback(createForm.name.trim()),
       skills,
-      technologies,
+      technologies: skills,
+      education: educationFormatted || undefined,
+      services: createForm.services.length > 0 ? createForm.services : undefined,
+      github: createForm.github.trim() || undefined,
+      linkedin: createForm.linkedin.trim() || undefined,
+      portfolio: createForm.portfolio.trim() || undefined,
       projects: [
         {
           id: `proj-${Date.now()}`,
           title: createForm.projectName.trim(),
-          description: createForm.projectDesc.trim() || 'DEMO STUDENT PROJECT',
-          image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=400&fit=crop',
-          technologies,
+          description: createForm.projectDesc.trim(),
+          image: createForm.projectImage.trim() || 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=400&fit=crop',
+          category: createForm.projectCategory,
+          technologies: projectTechs,
+          projectLink: createForm.projectLink.trim() || undefined,
+          githubLink: createForm.projectGithubLink.trim() || undefined,
+          completionYear: createForm.projectCompletionYear.trim() || new Date().getFullYear().toString(),
         },
       ],
       featuredProject: createForm.projectName.trim(),
       projectCount: 1,
-      category: ['CODING', 'WEB DEVELOPMENT'],
+      category: Array.from(derivedCategories),
     };
 
     saveCustomFreelancer(newFreelancer);
@@ -1895,7 +1989,7 @@ export default function Freelancers() {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 24 }}
-              className="glass-strong relative mb-12 w-full max-w-4xl rounded-3xl border border-sky-300/50 dark:border-sky-500/40 shadow-2xl p-6 sm:p-8"
+              className="glass-strong relative mb-12 w-full max-w-4xl max-h-[85vh] overflow-y-auto rounded-3xl border border-sky-300/50 dark:border-sky-500/40 shadow-2xl p-6 sm:p-8"
               onClick={(e) => e.stopPropagation()}
             >
               {createSuccess ? (
@@ -1926,63 +2020,364 @@ export default function Freelancers() {
                     </h3>
                   </div>
 
-                  <form onSubmit={handleCreateNewFreelancer} className="space-y-4">
-                    <div>
-                      <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Name *</label>
-                      <input
-                        value={createForm.name}
-                        onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                        className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
-                      />
-                      {createFormErrors.name && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.name}</p>}
+                  <form onSubmit={handleCreateNewFreelancer} className="space-y-6">
+                    {/* SECTION 1: PERSONAL DETAILS */}
+                    <div className="border-b border-slate-200/80 dark:border-slate-800/80 pb-6 space-y-4">
+                      <h4 className="text-xs font-extrabold uppercase tracking-widest text-sky-600 dark:text-sky-400">
+                        1. Personal Details
+                      </h4>
+
+                      {/* Profile Photo */}
+                      <div>
+                        <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">
+                          Profile Photo
+                        </label>
+                        <div className="flex items-center gap-4">
+                          <img
+                            src={createForm.photo || getAvatarFallback(createForm.name || 'F')}
+                            alt="Profile preview"
+                            className="h-16 w-16 rounded-full object-cover border-2 border-sky-400 shadow-md aspect-square bg-slate-900"
+                          />
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <label className="cursor-pointer rounded-xl bg-sky-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-sky-600 transition-colors shadow-sm inline-flex items-center gap-1.5">
+                                <span>Upload Photo</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleCreatePhotoUpload}
+                                  className="hidden"
+                                />
+                              </label>
+                              {createForm.photo && (
+                                <button
+                                  type="button"
+                                  onClick={() => setCreateForm((prev) => ({ ...prev, photo: '' }))}
+                                  className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-bold text-rose-500 hover:bg-rose-500/20 transition-colors"
+                                >
+                                  Remove Photo
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-slate-500">Frontend-only file upload. Compressed before storage.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Name, Username, Email */}
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Name *</label>
+                          <input
+                            value={createForm.name}
+                            onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                            placeholder="e.g. Sanmathi"
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                          />
+                          {createFormErrors.name && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.name}</p>}
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Username *</label>
+                          <input
+                            value={createForm.username}
+                            onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })}
+                            placeholder="e.g. @sanmathi"
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                          />
+                          {createFormErrors.username && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.username}</p>}
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Email Address *</label>
+                          <input
+                            type="email"
+                            value={createForm.email}
+                            onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                            placeholder="e.g. sanmathi@example.com"
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                          />
+                          {createFormErrors.email && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.email}</p>}
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Professional Title *</label>
-                      <input
-                        value={createForm.title}
-                        onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
-                        placeholder="e.g. Full Stack Developer"
-                        className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
-                      />
-                      {createFormErrors.title && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.title}</p>}
+                    {/* SECTION 2: PROFESSIONAL DETAILS */}
+                    <div className="border-b border-slate-200/80 dark:border-slate-800/80 pb-6 space-y-4">
+                      <h4 className="text-xs font-extrabold uppercase tracking-widest text-sky-600 dark:text-sky-400">
+                        2. Professional Details
+                      </h4>
+
+                      <div>
+                        <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Professional Title *</label>
+                        <input
+                          value={createForm.title}
+                          onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
+                          placeholder="e.g. Full Stack & AI Developer"
+                          className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                        />
+                        {createFormErrors.title && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.title}</p>}
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">About *</label>
+                        <textarea
+                          value={createForm.about}
+                          onChange={(e) => setCreateForm({ ...createForm, about: e.target.value })}
+                          rows={3}
+                          placeholder="Describe your background and expertise..."
+                          className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                        />
+                        {createFormErrors.about && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.about}</p>}
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Skills * (comma separated)</label>
+                        <input
+                          value={createForm.skills}
+                          onChange={(e) => setCreateForm({ ...createForm, skills: e.target.value })}
+                          placeholder="React, TypeScript, Node.js, Python"
+                          className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                        />
+                        {createFormErrors.skills && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.skills}</p>}
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">About *</label>
-                      <textarea
-                        value={createForm.about}
-                        onChange={(e) => setCreateForm({ ...createForm, about: e.target.value })}
-                        rows={3}
-                        className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
-                      />
-                      {createFormErrors.about && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.about}</p>}
+                    {/* SECTION 3: EDUCATION */}
+                    <div className="border-b border-slate-200/80 dark:border-slate-800/80 pb-6 space-y-4">
+                      <h4 className="text-xs font-extrabold uppercase tracking-widest text-sky-600 dark:text-sky-400">
+                        3. Education
+                      </h4>
+
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">College / Institution</label>
+                          <input
+                            value={createForm.college}
+                            onChange={(e) => setCreateForm({ ...createForm, college: e.target.value })}
+                            placeholder="e.g. Kangeyam Institute of Technology"
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Degree / Course</label>
+                          <input
+                            value={createForm.degree}
+                            onChange={(e) => setCreateForm({ ...createForm, degree: e.target.value })}
+                            placeholder="e.g. B.E. Computer Science and Engineering"
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Graduation Year</label>
+                          <input
+                            value={createForm.gradYear}
+                            onChange={(e) => setCreateForm({ ...createForm, gradYear: e.target.value })}
+                            placeholder="e.g. 2028"
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Skills * (comma separated)</label>
-                      <input
-                        value={createForm.skills}
-                        onChange={(e) => setCreateForm({ ...createForm, skills: e.target.value })}
-                        placeholder="React, TypeScript, Node.js"
-                        className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
-                      />
-                      {createFormErrors.skills && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.skills}</p>}
+                    {/* SECTION 4: SERVICES & LINKS */}
+                    <div className="border-b border-slate-200/80 dark:border-slate-800/80 pb-6 space-y-4">
+                      <h4 className="text-xs font-extrabold uppercase tracking-widest text-sky-600 dark:text-sky-400">
+                        4. Services Offered & Portfolio Links
+                      </h4>
+
+                      <div>
+                        <label className="mb-2 block text-xs font-bold text-slate-700 dark:text-slate-300">Services Offered</label>
+                        <div className="flex flex-wrap gap-2">
+                          {servicesList.map((svc) => {
+                            const isSelected = createForm.services.includes(svc);
+                            return (
+                              <button
+                                key={svc}
+                                type="button"
+                                onClick={() => toggleCreateService(svc)}
+                                className={`rounded-full px-3 py-1 text-xs font-bold transition-all ${
+                                  isSelected
+                                    ? 'bg-sky-500 text-white shadow-md'
+                                    : 'glass-crystal text-slate-600 dark:text-slate-400 hover:border-sky-400/40'
+                                }`}
+                              >
+                                {svc}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">GitHub URL</label>
+                          <input
+                            value={createForm.github}
+                            onChange={(e) => setCreateForm({ ...createForm, github: e.target.value })}
+                            placeholder="https://github.com/..."
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">LinkedIn URL</label>
+                          <input
+                            value={createForm.linkedin}
+                            onChange={(e) => setCreateForm({ ...createForm, linkedin: e.target.value })}
+                            placeholder="https://linkedin.com/in/..."
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Portfolio Website</label>
+                          <input
+                            value={createForm.portfolio}
+                            onChange={(e) => setCreateForm({ ...createForm, portfolio: e.target.value })}
+                            placeholder="https://..."
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Initial Project Name *</label>
-                      <input
-                        value={createForm.projectName}
-                        onChange={(e) => setCreateForm({ ...createForm, projectName: e.target.value })}
-                        className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
-                      />
-                      {createFormErrors.projectName && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.projectName}</p>}
+                    {/* SECTION 5: INITIAL PROJECT */}
+                    <div className="pb-2 space-y-4">
+                      <h4 className="text-xs font-extrabold uppercase tracking-widest text-sky-600 dark:text-sky-400">
+                        5. Initial Project Showcase
+                      </h4>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Initial Project Name *</label>
+                          <input
+                            value={createForm.projectName}
+                            onChange={(e) => setCreateForm({ ...createForm, projectName: e.target.value })}
+                            placeholder="e.g. AuraFlow AI Platform"
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                          />
+                          {createFormErrors.projectName && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.projectName}</p>}
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Project Category *</label>
+                          <select
+                            value={createForm.projectCategory}
+                            onChange={(e) => setCreateForm({ ...createForm, projectCategory: e.target.value })}
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                          >
+                            {skillCategories.filter(c => c !== 'ALL').map(cat => (
+                              <option key={cat} value={cat} className="bg-slate-900 text-white">{cat}</option>
+                            ))}
+                          </select>
+                          {createFormErrors.projectCategory && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.projectCategory}</p>}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Project Description *</label>
+                        <textarea
+                          value={createForm.projectDesc}
+                          onChange={(e) => setCreateForm({ ...createForm, projectDesc: e.target.value })}
+                          rows={2}
+                          placeholder="Brief description of your project..."
+                          className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                        />
+                        {createFormErrors.projectDesc && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.projectDesc}</p>}
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Technologies Used * (comma separated)</label>
+                        <input
+                          value={createForm.projectTechnologies}
+                          onChange={(e) => setCreateForm({ ...createForm, projectTechnologies: e.target.value })}
+                          placeholder="React, TypeScript, Tailwind, Node.js"
+                          className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                        />
+                        {createFormErrors.projectTechnologies && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.projectTechnologies}</p>}
+                      </div>
+
+                      {/* Project Image Upload */}
+                      <div>
+                        <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Project Image / Thumbnail *</label>
+                        <div className="flex items-center gap-4">
+                          {createForm.projectImage ? (
+                            <img
+                              src={createForm.projectImage}
+                              alt="Project thumbnail"
+                              className="h-20 w-32 rounded-xl object-cover border-2 border-sky-400 shadow-md bg-slate-900"
+                            />
+                          ) : (
+                            <div className="h-20 w-32 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-[10px] text-slate-400 font-semibold text-center p-2">
+                              No Image Uploaded
+                            </div>
+                          )}
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <label className="cursor-pointer rounded-xl bg-sky-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-sky-600 transition-colors shadow-sm inline-flex items-center gap-1.5">
+                                <span>Upload Project Image</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleCreateProjectImageUpload}
+                                  className="hidden"
+                                />
+                              </label>
+                              {createForm.projectImage && (
+                                <button
+                                  type="button"
+                                  onClick={() => setCreateForm((prev) => ({ ...prev, projectImage: '' }))}
+                                  className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-bold text-rose-500 hover:bg-rose-500/20 transition-colors"
+                                >
+                                  Remove Image
+                                </button>
+                              )}
+                            </div>
+                            {createFormErrors.projectImage && <p className="mt-1 text-[11px] text-rose-500">{createFormErrors.projectImage}</p>}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Optional Project Links */}
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Live Project Link (Optional)</label>
+                          <input
+                            value={createForm.projectLink}
+                            onChange={(e) => setCreateForm({ ...createForm, projectLink: e.target.value })}
+                            placeholder="https://..."
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">GitHub Link (Optional)</label>
+                          <input
+                            value={createForm.projectGithubLink}
+                            onChange={(e) => setCreateForm({ ...createForm, projectGithubLink: e.target.value })}
+                            placeholder="https://github.com/..."
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-slate-700 dark:text-slate-300">Completion Year (Optional)</label>
+                          <input
+                            value={createForm.projectCompletionYear}
+                            onChange={(e) => setCreateForm({ ...createForm, projectCompletionYear: e.target.value })}
+                            placeholder="2024"
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     <button
                       type="submit"
-                      className="w-full rounded-2xl bg-gradient-to-r from-sky-500 via-blue-600 to-teal-400 py-3.5 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg"
+                      className="w-full rounded-2xl bg-gradient-to-r from-sky-500 via-blue-600 to-teal-400 py-3.5 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg transition-transform hover:scale-[1.01]"
                     >
                       CREATE FREELANCER PROFILE
                     </button>

@@ -14,6 +14,7 @@ export interface Freelancer {
   id: string;
   name: string;
   username?: string;
+  email?: string;
   title: string;
   about: string;
   bio?: string;
