@@ -1,5 +1,6 @@
 package dev.freeverse.service;
 
+import dev.freeverse.exception.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,7 +15,10 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username:noreply@freeverse.dev}")
+    @Value("${spring.mail.username:}")
+    private String mailUsername;
+
+    @Value("${mail.from:noreply@freeverse.dev}")
     private String mailFrom;
 
     @Value("${app.client-url:http://localhost:5173}")
@@ -24,15 +28,16 @@ public class EmailService {
         this.mailSender = mailSender;
     }
 
-    public void sendVerificationEmail(String toEmail, String username, String token) {
-        String verificationUrl = clientUrl + "/#verify-email?token=" + token;
-        String subject = "Verify your Freeverse Account";
+    public void sendVerificationCodeEmail(String toEmail, String username, String code) {
+        String subject = "Freeverse Account Verification Code: " + code;
         String content = "Hello " + username + ",\n\n"
-                + "Thank you for joining Freeverse! Please verify your email address by clicking the link below:\n\n"
-                + verificationUrl + "\n\n"
-                + "If you did not create this account, please ignore this email.";
+                + "Thank you for joining Freeverse!\n\n"
+                + "Your 6-digit email confirmation code is:\n\n"
+                + "   " + code + "\n\n"
+                + "Please enter this confirmation code in the Freeverse application to verify your email address.\n\n"
+                + "This verification code will expire in 24 hours. If you did not create a Freeverse account, please ignore this email.";
 
-        sendEmailOrLog(toEmail, subject, content);
+        sendEmail(toEmail, subject, content);
     }
 
     public void sendPasswordResetEmail(String toEmail, String username, String token) {
@@ -43,20 +48,26 @@ public class EmailService {
                 + resetUrl + "\n\n"
                 + "This link will expire in 24 hours. If you did not request a password reset, please ignore this email.";
 
-        sendEmailOrLog(toEmail, subject, content);
+        sendEmail(toEmail, subject, content);
     }
 
-    private void sendEmailOrLog(String to, String subject, String text) {
+    private void sendEmail(String to, String subject, String text) {
+        if (mailUsername == null || mailUsername.trim().isEmpty()) {
+            log.warn("SMTP credentials (MAIL_USERNAME) not configured. Real email dispatch to {} skipped. Email content:\n{}", to, text);
+            throw new BadRequestException("Email verification dispatch failed: SMTP credentials (MAIL_USERNAME/MAIL_PASSWORD) are not configured on the backend server. Please set MAIL_USERNAME and MAIL_PASSWORD in backend environment variables.");
+        }
+
         try {
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(mailFrom);
+            message.setFrom(mailFrom != null && !mailFrom.isEmpty() ? mailFrom : mailUsername);
             message.setTo(to);
             message.setSubject(subject);
             message.setText(text);
             mailSender.send(message);
-            log.info("Email successfully dispatched to {}", to);
+            log.info("Email verification code successfully sent via SMTP to {}", to);
         } catch (Exception e) {
-            log.warn("SMTP host not reachable, logging email content for development testing:\nTo: {}\nSubject: {}\nContent:\n{}", to, subject, text);
+            log.error("Failed to deliver email to {}: {}", to, e.getMessage(), e);
+            throw new BadRequestException("Email delivery failed via SMTP server: " + e.getMessage() + ". Please verify SMTP server settings.");
         }
     }
 }

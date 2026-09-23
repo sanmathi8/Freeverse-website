@@ -44,7 +44,7 @@ export const AuthModal: React.FC = () => {
           password: formData.password,
         });
         if (!res.success) {
-          setError(res.message || 'Login failed. Please check credentials or start backend server.');
+          setError(res.message);
         }
       } else if (mode === 'register') {
         const res = await register({
@@ -55,32 +55,32 @@ export const AuthModal: React.FC = () => {
         });
         if (res.success) {
           setMode('verify');
-          setSuccessMsg(`Verification code sent to ${formData.email}! Enter 6-digit code below.`);
+          setSuccessMsg(`Account created! A 6-digit confirmation code has been sent to ${formData.email}. Please check your email inbox.`);
         } else {
-          // If offline backend, still show 6-digit code verification step
-          setMode('verify');
-          setSuccessMsg(`Verification code sent to ${formData.email}! (Use code 584920 in offline dev)`);
+          setError(res.message);
         }
       } else if (mode === 'verify') {
         if (!verificationCode || verificationCode.length < 6) {
-          setError('Please enter valid 6-digit confirmation code (e.g. 584920)');
+          setError('Please enter the 6-digit verification code sent to your email address.');
           setSubmitting(false);
           return;
         }
 
-        try {
-          await authApi.verifyEmail(verificationCode);
-        } catch {
-          // Fallback verify
+        const res = await authApi.verifyEmail(verificationCode);
+        if (res.success) {
+          setSuccessMsg('Email address verified successfully! Logging into your account...');
+          setTimeout(async () => {
+            const loginRes = await login({
+              usernameOrEmail: formData.email || formData.username,
+              password: formData.password,
+            });
+            if (!loginRes.success) {
+              setError(loginRes.message);
+            }
+          }, 1000);
+        } else {
+          setError(res.message);
         }
-
-        setSuccessMsg('Email address verified successfully! Logging into your new account...');
-        setTimeout(async () => {
-          await login({
-            usernameOrEmail: formData.email || formData.username,
-            password: formData.password,
-          });
-        }, 1000);
       } else if (mode === 'forgot') {
         const res = await authApi.forgotPassword(formData.email);
         if (res.success) {
@@ -90,7 +90,7 @@ export const AuthModal: React.FC = () => {
         }
       }
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+      setError(err.message || 'An unexpected error occurred during authentication');
     } finally {
       setSubmitting(false);
     }
@@ -114,16 +114,10 @@ export const AuthModal: React.FC = () => {
         closeAuthModal();
         window.location.reload();
       } else {
-        const { setAuthToken } = await import('../api/client');
-        setAuthToken('dev-google-jwt-token');
-        closeAuthModal();
-        window.location.reload();
+        setError(res.message || 'Google OAuth credentials (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) are not configured on the backend server.');
       }
     } catch (err: any) {
-      const { setAuthToken } = await import('../api/client');
-      setAuthToken('dev-google-jwt-token');
-      closeAuthModal();
-      window.location.reload();
+      setError(err.message || 'Google authentication failed.');
     } finally {
       setSubmitting(false);
     }
@@ -167,9 +161,9 @@ export const AuthModal: React.FC = () => {
               {mode === 'forgot' && 'Reset Password'}
             </h3>
             <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-              {mode === 'login' && 'Log in to manage your freelancer profile and projects'}
+              {mode === 'login' && 'Log in with your username or email to manage your profile'}
               {mode === 'register' && 'Create your account with email & password'}
-              {mode === 'verify' && 'Enter the 6-digit confirmation code sent to your email'}
+              {mode === 'verify' && 'Enter the 6-digit verification code sent to your email inbox'}
               {mode === 'forgot' && 'Enter your email to receive a password reset link'}
             </p>
           </div>
@@ -272,7 +266,7 @@ export const AuthModal: React.FC = () => {
                     required
                     value={verificationCode}
                     onChange={(e) => setVerificationCode(e.target.value)}
-                    placeholder="584920"
+                    placeholder="123456"
                     className="w-full font-mono tracking-widest text-center text-base rounded-2xl border border-sky-400/50 bg-white/80 dark:bg-slate-900/80 py-3 text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none"
                   />
                 </div>
@@ -304,7 +298,7 @@ export const AuthModal: React.FC = () => {
                   : mode === 'register'
                   ? 'Create Profile & Account'
                   : mode === 'verify'
-                  ? 'Verify Email & Enter'
+                  ? 'Verify Code & Sign In'
                   : 'Send Reset Link'}
               </span>
               <ArrowRight size={16} />

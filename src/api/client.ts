@@ -60,10 +60,14 @@ export async function fetchApi<T = any>(
 
     return json;
   } catch (err: any) {
-    console.warn(`[API Call Failed: ${endpoint}]`, err);
+    console.warn(`[API Network Failure on ${endpoint}]`, err);
+    let message = err.message || 'Network request failed';
+    if (err.name === 'TypeError' || message === 'Failed to fetch') {
+      message = 'Unable to connect to backend server (http://localhost:8080). Please ensure PostgreSQL database and Spring Boot backend are running.';
+    }
     return {
       success: false,
-      message: err.message || 'Network request failed',
+      message,
     };
   }
 }

@@ -7,14 +7,15 @@ import dev.freeverse.exception.ResourceNotFoundException;
 import dev.freeverse.repository.*;
 import dev.freeverse.security.JwtTokenProvider;
 import dev.freeverse.security.UserPrincipal;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -31,6 +32,9 @@ public class AuthService {
     private final JwtTokenProvider tokenProvider;
     private final EmailService emailService;
     private final ProfileService profileService;
+
+    @Value("${spring.security.oauth2.client.registration.google.client-id:}")
+    private String googleClientId;
 
     public AuthService(
             UserRepository userRepository,
@@ -57,10 +61,10 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmail(request.getEmail().toLowerCase().trim())) {
             throw new BadRequestException("Email is already registered");
         }
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsername(request.getUsername().toLowerCase().trim().replace("@", ""))) {
             throw new BadRequestException("Username is already taken");
         }
 
@@ -80,17 +84,17 @@ public class AuthService {
         profile.setAbout("Welcome to my Freeverse freelancer profile!");
         profileRepository.save(profile);
 
-        // Create verification token
-        String token = UUID.randomUUID().toString();
+        // Generate cryptographically secure 6-digit confirmation code
+        String code = String.format("%06d", new SecureRandom().nextInt(1000000));
         EmailVerificationToken verificationToken = new EmailVerificationToken(
-                user, token, OffsetDateTime.now().plusDays(1)
+                user, code, OffsetDateTime.now().plusDays(1)
         );
         verificationTokenRepository.save(verificationToken);
 
-        emailService.sendVerificationEmail(user.getEmail(), user.getUsername(), token);
+        // Send REAL email via SMTP
+        emailService.sendVerificationCodeEmail(user.getEmail(), user.getUsername(), code);
 
-        String jwtToken = tokenProvider.generateTokenFromUserId(user.getId(), user.getEmail(), user.getUsername());
-        AuthResponse response = new AuthResponse(jwtToken, user.getId(), user.getUsername(), user.getEmail(), user.isEmailVerified());
+        AuthResponse response = new AuthResponse(null, user.getId(), user.getUsername(), user.getEmail(), false);
         response.setProfile(profileService.getProfileByUserId(user.getId(), user.getId()));
         return response;
     }
@@ -105,6 +109,10 @@ public class AuthService {
         User user = userRepository.findById(userPrincipal.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        if (!user.isEmailVerified()) {
+            throw new BadRequestException("Please verify your email address before logging in. Check your email for the 6-digit verification code.");
+        }
+
         user.setLastLoginAt(OffsetDateTime.now());
         userRepository.save(user);
 
@@ -115,12 +123,16 @@ public class AuthService {
     }
 
     @Transactional
-    public void verifyEmail(String tokenStr) {
-        EmailVerificationToken token = verificationTokenRepository.findByToken(tokenStr)
-                .orElseThrow(() -> new BadRequestException("Invalid or expired email verification token"));
+    public void verifyEmail(String codeStr) {
+        if (codeStr == null || codeStr.trim().isEmpty()) {
+            throw new BadRequestException("Verification code is required");
+        }
+
+        EmailVerificationToken token = verificationTokenRepository.findByToken(codeStr.trim())
+                .orElseThrow(() -> new BadRequestException("Invalid 6-digit verification code. Please check your email inbox."));
 
         if (token.isUsed() || token.getExpiresAt().isBefore(OffsetDateTime.now())) {
-            throw new BadRequestException("Verification token has expired or already been used");
+            throw new BadRequestException("Verification code has expired or already been used.");
         }
 
         token.setUsed(true);
@@ -164,6 +176,14 @@ public class AuthService {
 
     @Transactional
     public AuthResponse loginOrRegisterGoogle(String email, String googleId, String name, String picture) {
+        if (googleClientId == null || googleClientId.trim().isEmpty() || googleClientId.contains("placeholder")) {
+            throw new BadRequestException("Google OAuth credentials (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) are not configured in backend environment variables.");
+        }
+
+        if (email == null || email.trim().isEmpty()) {
+            throw new BadRequestException("Valid Google email is required");
+        }
+
         User user = userRepository.findByEmail(email.toLowerCase().trim()).orElse(null);
 
         if (user == null) {
