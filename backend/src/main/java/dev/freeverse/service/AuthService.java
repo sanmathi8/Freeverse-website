@@ -144,6 +144,36 @@ public class AuthService {
     }
 
     @Transactional
+    public void resendVerificationCode(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new BadRequestException("Email address is required.");
+        }
+        User user = userRepository.findByEmail(email.toLowerCase().trim())
+                .orElseThrow(() -> new ResourceNotFoundException("Account with specified email address not found."));
+
+        if (user.isEmailVerified()) {
+            throw new BadRequestException("Email address is already verified.");
+        }
+
+        // Invalidate previous active verification codes for this user
+        java.util.List<EmailVerificationToken> activeTokens = verificationTokenRepository.findByUserIdAndUsedFalse(user.getId());
+        for (EmailVerificationToken oldToken : activeTokens) {
+            oldToken.setUsed(true);
+        }
+        verificationTokenRepository.saveAll(activeTokens);
+
+        // Generate new cryptographically secure 6-digit confirmation code
+        String code = String.format("%06d", new SecureRandom().nextInt(1000000));
+        EmailVerificationToken verificationToken = new EmailVerificationToken(
+                user, code, OffsetDateTime.now().plusDays(1)
+        );
+        verificationTokenRepository.save(verificationToken);
+
+        // Send REAL email via SMTP
+        emailService.sendVerificationCodeEmail(user.getEmail(), user.getUsername(), code);
+    }
+
+    @Transactional
     public void forgotPassword(String email) {
         User user = userRepository.findByEmail(email.toLowerCase().trim())
                 .orElseThrow(() -> new ResourceNotFoundException("Account with specified email not found"));

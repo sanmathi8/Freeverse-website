@@ -45,6 +45,14 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok("Email successfully verified"));
     }
 
+    @PostMapping("/resend-verification")
+    @Operation(summary = "Resend 6-digit email verification code")
+    public ResponseEntity<ApiResponse<Void>> resendVerification(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        authService.resendVerificationCode(email);
+        return ResponseEntity.ok(ApiResponse.ok("Verification code sent to your email."));
+    }
+
     @PostMapping("/forgot-password")
     @Operation(summary = "Request a password reset email")
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@RequestBody Map<String, String> body) {

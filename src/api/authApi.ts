@@ -39,6 +39,13 @@ export const authApi = {
     });
   },
 
+  async resendVerificationCode(email: string) {
+    return fetchApi('/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
   async forgotPassword(email: string) {
     return fetchApi('/auth/forgot-password', {
       method: 'POST',
